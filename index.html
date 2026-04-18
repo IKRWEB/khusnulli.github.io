@@ -1062,6 +1062,9 @@
         <div id="listenHint" class="listen-hint">Әзер булсаң - бас!</div>
 
         <div class="actions">
+          <button class="secondary hidden-action" id="skipTypingBtn" type="button" aria-label="Текстны тизрәк чыгару">
+            Тизрәк укырга
+          </button>
           <button class="primary hidden-action" id="listenBtn" type="button" aria-label="Тавыш язмаларын ачу">
             Тыңларга
           </button>
@@ -1173,6 +1176,7 @@
     const openBtn = document.getElementById("openBtn");
     const backBtn = document.getElementById("backBtn");
     const listenBtn = document.getElementById("listenBtn");
+    const skipTypingBtn = document.getElementById("skipTypingBtn");
     const listenHint = document.getElementById("listenHint");
     const readTextBtn = document.getElementById("readTextBtn");
     const finishListenBtn = document.getElementById("finishListenBtn");
@@ -1255,12 +1259,99 @@
     const expectedAnswer = "керпе";
     const panelTransitionDuration = 420;
     const mainPanels = [card, letter, thanksStep, secretLetter, endingStep];
+    const storageKey = "khusnulli-letter-state";
 
     function formatTime(time) {
       if (!Number.isFinite(time)) return "0:00";
       const minutes = Math.floor(time / 60);
       const seconds = Math.floor(time % 60).toString().padStart(2, "0");
       return `${minutes}:${seconds}`;
+    }
+
+    function saveAppState() {
+      const currentStage = !endingStep.classList.contains("hidden")
+        ? "ending"
+        : !secretLetter.classList.contains("hidden")
+          ? "secret"
+          : !thanksStep.classList.contains("hidden")
+            ? "thanks"
+            : !letter.classList.contains("hidden")
+              ? (audioSection.classList.contains("hidden-view") ? "letter-text" : "letter-audio")
+              : "card";
+
+      const payload = {
+        stage: currentStage,
+        typingIndex,
+        hasFinishedTyping,
+        secretTypingIndex,
+        secretDone: secretDoneBtn.classList.contains("show"),
+        endingHomeVisible: !homeReturnBtn.classList.contains("hidden-view"),
+        endingNote: endingNote.textContent,
+        selectedAudio,
+      };
+
+      localStorage.setItem(storageKey, JSON.stringify(payload));
+    }
+
+    function loadAppState() {
+      try {
+        return JSON.parse(localStorage.getItem(storageKey) || "null");
+      } catch {
+        return null;
+      }
+    }
+
+    function completeMainLetter() {
+      stopTyping();
+      textEl.textContent = fullText;
+      textEl.classList.remove("cursor");
+      typingIndex = fullText.length;
+      isTyping = false;
+      hasFinishedTyping = true;
+      listenBtn.disabled = false;
+      listenBtn.classList.remove("hidden-action");
+      backBtn.classList.remove("hidden-action");
+      skipTypingBtn.classList.add("hidden-action");
+      listenHint.classList.add("show");
+      saveAppState();
+    }
+
+    function completeSecretLetter() {
+      stopSecretTyping();
+      secretTextEl.textContent = finalLetterText;
+      secretTextEl.classList.remove("cursor");
+      secretTypingIndex = finalLetterText.length;
+      isSecretTyping = false;
+      secretDoneBtn.classList.add("show");
+      saveAppState();
+    }
+
+    function applyLetterTypingState() {
+      if (hasFinishedTyping || typingIndex >= fullText.length) {
+        completeMainLetter();
+        return;
+      }
+
+      textEl.textContent = fullText.slice(0, typingIndex);
+      textEl.classList.add("cursor");
+      isTyping = true;
+      listenBtn.disabled = true;
+      listenBtn.classList.add("hidden-action");
+      backBtn.classList.add("hidden-action");
+      skipTypingBtn.classList.remove("hidden-action");
+      listenHint.classList.remove("show");
+    }
+
+    function applySecretTypingState() {
+      if (secretDoneBtn.classList.contains("show") || secretTypingIndex >= finalLetterText.length) {
+        completeSecretLetter();
+        return;
+      }
+
+      secretTextEl.textContent = finalLetterText.slice(0, secretTypingIndex);
+      secretTextEl.classList.add("cursor");
+      isSecretTyping = true;
+      secretDoneBtn.classList.remove("show");
     }
 
     function resetAudioUI() {
@@ -1325,6 +1416,7 @@
       letter.classList.remove("audio-mode");
       textView.classList.remove("hidden-view");
       audioSection.classList.add("hidden-view");
+      saveAppState();
     }
 
     function finalizePanelState(panel) {
@@ -1403,6 +1495,7 @@
       textView.classList.add("hidden-view");
       audioSection.classList.remove("hidden-view");
       expandPanel(letter);
+      saveAppState();
     }
 
     function showAudioStage() {
@@ -1448,9 +1541,11 @@
           listenBtn.disabled = true;
           listenBtn.classList.add("hidden-action");
           backBtn.classList.add("hidden-action");
+          skipTypingBtn.classList.add("hidden-action");
           listenHint.classList.remove("show");
           showTextView();
           resetAudioUI();
+          saveAppState();
           openBtn.focus();
         },
       });
@@ -1542,11 +1637,13 @@
       isTyping = true;
       hasFinishedTyping = false;
       listenBtn.disabled = true;
+      skipTypingBtn.classList.remove("hidden-action");
       listenBtn.classList.add("hidden-action");
       backBtn.classList.add("hidden-action");
       listenHint.classList.remove("show");
       showTextView();
       resetAudioUI();
+      saveAppState();
       typeNextChar();
     }
 
@@ -1566,6 +1663,7 @@
       secretTypingIndex = 0;
       isSecretTyping = true;
       window.scrollTo(0, 0);
+      saveAppState();
       typeSecretChar();
     }
 
@@ -1585,12 +1683,10 @@
         secretTextEl.textContent = finalLetterText.slice(0, secretTypingIndex + 1);
         secretTypingIndex += 1;
         maybeStickToBottom(shouldStick);
+        if (secretTypingIndex % 20 === 0) saveAppState();
         secretTypingTimer = setTimeout(typeSecretChar, 42);
       } else {
-        secretTextEl.textContent = finalLetterText;
-        secretTextEl.classList.remove("cursor");
-        isSecretTyping = false;
-        secretDoneBtn.classList.add("show");
+        completeSecretLetter();
       }
     }
 
@@ -1602,16 +1698,10 @@
         textEl.textContent = fullText.slice(0, typingIndex + 1);
         typingIndex += 1;
         maybeStickToBottom(shouldStick);
+        if (typingIndex % 20 === 0) saveAppState();
         typingTimer = setTimeout(typeNextChar, 55);
       } else {
-        textEl.textContent = fullText;
-        textEl.classList.remove("cursor");
-        isTyping = false;
-        hasFinishedTyping = true;
-        listenBtn.disabled = false;
-        listenBtn.classList.remove("hidden-action");
-        backBtn.classList.remove("hidden-action");
-        listenHint.classList.add("show");
+        completeMainLetter();
       }
     }
 
@@ -1667,6 +1757,7 @@
         audioWrap.classList.add("show");
         nowPlayingLabel.textContent = `Хәзер уйный: ${btn.querySelector(".listen-name").textContent}`;
         togglePlayBtn.textContent = "Пауза";
+        saveAppState();
 
         voicePlayer.play().catch(() => {});
       });
@@ -1759,6 +1850,7 @@
 
     openBtn.addEventListener("click", showLetter);
     listenBtn.addEventListener("click", openAudioMode);
+    skipTypingBtn.addEventListener("click", completeMainLetter);
     finishListenBtn.addEventListener("click", showThanksStep);
     backBtn.addEventListener("click", showCard);
     thanksBackBtn.addEventListener("click", showAudioStage);
@@ -1793,6 +1885,87 @@
         showCard();
       }
     });
+
+    const savedState = loadAppState();
+    if (savedState) {
+      typingIndex = Math.max(0, Math.min(savedState.typingIndex || 0, fullText.length));
+      hasFinishedTyping = Boolean(savedState.hasFinishedTyping);
+      secretTypingIndex = Math.max(0, Math.min(savedState.secretTypingIndex || 0, finalLetterText.length));
+      endingNote.textContent = savedState.endingNote || "";
+      if (savedState.endingHomeVisible) {
+        homeReturnBtn.classList.remove("hidden-view");
+      }
+
+      switch (savedState.stage) {
+        case "letter-text":
+          app.classList.add("raised");
+          card.classList.add("hidden");
+          letter.classList.remove("hidden");
+          activePanel = letter;
+          expandPanel(letter);
+          showTextView();
+          applyLetterTypingState();
+          if (!hasFinishedTyping) {
+            typeNextChar();
+          }
+          break;
+        case "letter-audio":
+          app.classList.add("raised");
+          card.classList.add("hidden");
+          letter.classList.remove("hidden");
+          activePanel = letter;
+          expandPanel(letter);
+          showAudioView();
+          if (savedState.selectedAudio) {
+            const savedBtn = audioList.querySelector(`[data-audio="${savedState.selectedAudio}"]`);
+            if (savedBtn) {
+              savedBtn.classList.add("active");
+              selectedAudio = savedState.selectedAudio;
+              const resolvedSrc = resolveAudioPath(savedState.selectedAudio);
+              voicePlayer.src = resolvedSrc;
+              audioSource.src = resolvedSrc;
+              audioSource.type = savedState.selectedAudio.endsWith(".mp3") ? "audio/mpeg" : "audio/mp4";
+              voicePlayer.load();
+              audioWrap.classList.add("show");
+              nowPlayingLabel.textContent = `Хәзер уйный: ${savedBtn.querySelector(".listen-name").textContent}`;
+            }
+          }
+          break;
+        case "thanks":
+          app.classList.add("raised");
+          card.classList.add("hidden");
+          thanksStep.classList.remove("hidden");
+          activePanel = thanksStep;
+          expandPanel(thanksStep);
+          break;
+        case "secret":
+          app.classList.add("raised");
+          card.classList.add("hidden");
+          secretLetter.classList.remove("hidden");
+          activePanel = secretLetter;
+          expandPanel(secretLetter);
+          if (savedState.secretDone) {
+            secretDoneBtn.classList.add("show");
+          }
+          applySecretTypingState();
+          if (!savedState.secretDone) {
+            typeSecretChar();
+          }
+          break;
+        case "ending":
+          app.classList.add("raised");
+          card.classList.add("hidden");
+          endingStep.classList.remove("hidden");
+          activePanel = endingStep;
+          expandPanel(endingStep);
+          break;
+        default:
+          saveAppState();
+          break;
+      }
+    } else {
+      saveAppState();
+    }
   </script>
 </body>
 </html>
