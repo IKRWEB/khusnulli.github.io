@@ -295,9 +295,9 @@
     }
 
     .hedgehog-trigger {
-      position: fixed;
-      right: max(14px, env(safe-area-inset-right));
-      bottom: calc(96px + env(safe-area-inset-bottom));
+      position: absolute;
+      top: 18px;
+      right: 18px;
       z-index: 2;
       border: none;
       background: rgba(255, 248, 250, 0.92);
@@ -922,11 +922,11 @@
       }
 
       .hedgehog-trigger {
-        right: max(10px, env(safe-area-inset-right));
-        bottom: calc(110px + env(safe-area-inset-bottom));
-        width: 54px;
-        height: 54px;
-        font-size: 30px;
+        top: 14px;
+        right: 14px;
+        width: 44px;
+        height: 44px;
+        font-size: 22px;
       }
 
       .content {
@@ -948,6 +948,32 @@
 
       .pet {
         font-size: 26px;
+      }
+
+      .audio-list {
+        gap: 10px;
+      }
+
+      .listen-btn {
+        min-height: 74px;
+        padding: 13px 14px;
+        border-radius: 18px;
+      }
+
+      .listen-name {
+        font-size: 16px;
+      }
+
+      .listen-meta {
+        font-size: 11px;
+      }
+
+      .audio-section .actions {
+        margin-top: 14px;
+      }
+
+      .audio-wrap.show {
+        padding: 14px;
       }
 
       .now-playing,
