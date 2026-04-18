@@ -1268,8 +1268,8 @@
       return `${minutes}:${seconds}`;
     }
 
-    function saveAppState() {
-      const currentStage = !endingStep.classList.contains("hidden")
+    function saveAppState(stageOverride = null) {
+      const currentStage = stageOverride || (!endingStep.classList.contains("hidden")
         ? "ending"
         : !secretLetter.classList.contains("hidden")
           ? "secret"
@@ -1277,7 +1277,7 @@
             ? "thanks"
             : !letter.classList.contains("hidden")
               ? (audioSection.classList.contains("hidden-view") ? "letter-text" : "letter-audio")
-              : "card";
+              : "card");
 
       const payload = {
         stage: currentStage,
@@ -1416,7 +1416,6 @@
       letter.classList.remove("audio-mode");
       textView.classList.remove("hidden-view");
       audioSection.classList.add("hidden-view");
-      saveAppState();
     }
 
     function finalizePanelState(panel) {
@@ -1495,7 +1494,6 @@
       textView.classList.add("hidden-view");
       audioSection.classList.remove("hidden-view");
       expandPanel(letter);
-      saveAppState();
     }
 
     function showAudioStage() {
@@ -1504,8 +1502,12 @@
         onBeforeEnter() {
           stopTyping();
           stopSecretTyping();
+          window.scrollTo(0, 0);
           expandPanel(letter);
           showAudioView();
+        },
+        onAfterEnter() {
+          saveAppState("letter-audio");
         },
       });
     }
@@ -1516,6 +1518,7 @@
         raised: true,
         onBeforeEnter() {
           stopSecretTyping();
+          window.scrollTo(0, 0);
           expandPanel(letter);
         },
         onAfterEnter() {
@@ -1532,6 +1535,7 @@
       switchPanel(card, {
         raised: false,
         onAfterEnter() {
+          window.scrollTo(0, 0);
           endingNote.textContent = "";
           homeReturnBtn.classList.add("hidden-view");
           textEl.textContent = "";
@@ -1559,6 +1563,10 @@
         raised: true,
         onBeforeEnter() {
           expandPanel(thanksStep);
+          window.scrollTo(0, 0);
+        },
+        onAfterEnter() {
+          saveAppState("thanks");
         },
       });
     }
@@ -1568,6 +1576,7 @@
       switchPanel(secretLetter, {
         raised: true,
         onBeforeEnter() {
+          window.scrollTo(0, 0);
           expandPanel(secretLetter);
         },
         onAfterEnter() {
@@ -1585,6 +1594,9 @@
         onBeforeEnter() {
           expandPanel(endingStep);
           window.scrollTo(0, 0);
+        },
+        onAfterEnter() {
+          saveAppState("ending");
         },
       });
     }
@@ -1708,6 +1720,7 @@
     function openAudioMode() {
       if (!hasFinishedTyping) return;
       showAudioView();
+      saveAppState("letter-audio");
     }
 
     function restartMainLetter() {
@@ -1742,6 +1755,7 @@
 
         if (isSameActive) {
           resetAudioUI();
+          saveAppState("letter-audio");
           return;
         }
 
@@ -1866,6 +1880,7 @@
     endingNoBtn.addEventListener("click", () => {
       endingNote.textContent = "Жалко, но всё равно. Спасибо тебе. За всё!";
       homeReturnBtn.classList.remove("hidden-view");
+      saveAppState("ending");
     });
     homeReturnBtn.addEventListener("click", showCard);
     answerInput.addEventListener("keydown", (event) => {
