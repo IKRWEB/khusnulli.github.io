@@ -689,9 +689,8 @@
       display: flex;
       flex-direction: column;
       align-items: flex-start;
-      justify-content: space-between;
-      gap: 8px;
-      min-height: 94px;
+      justify-content: center;
+      min-height: 78px;
       padding: 16px 18px;
       border: 1px solid rgba(255, 255, 255, 0.5);
       border-radius: 20px;
@@ -724,19 +723,6 @@
       font-family: "Nunito", "Trebuchet MS", Arial, sans-serif;
     }
 
-    .listen-meta {
-      font-size: 13px;
-      line-height: 1.4;
-      color: rgba(255, 248, 250, 0.82);
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
-    }
-
-    .listen-btn.pending .listen-meta {
-      color: rgba(111, 89, 96, 0.8);
-    }
-
     .listen-empty {
       padding: 18px 20px;
       border-radius: 18px;
@@ -762,12 +748,12 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.9);
       opacity: 0;
       overflow: hidden;
-      transform: translateY(-6px);
+      transform: translateY(-4px);
       transition:
-        grid-template-rows 0.4s ease,
-        padding 0.4s ease,
-        opacity 0.32s ease,
-        transform 0.4s ease;
+        grid-template-rows 0.18s ease,
+        padding 0.18s ease,
+        opacity 0.16s ease,
+        transform 0.18s ease;
     }
 
     .audio-wrap.show {
@@ -955,7 +941,7 @@
       }
 
       .listen-btn {
-        min-height: 74px;
+        min-height: 64px;
         padding: 13px 14px;
         border-radius: 18px;
       }
@@ -964,16 +950,12 @@
         font-size: 16px;
       }
 
-      .listen-meta {
-        font-size: 11px;
-      }
-
       .audio-section .actions {
         margin-top: 14px;
       }
 
       .audio-wrap.show {
-        padding: 14px;
+        padding: 12px;
       }
 
       .now-playing,
@@ -1651,10 +1633,9 @@
 
       audioList.innerHTML = audioTracks
         .map(
-          ({ title, file, meta }) => `
+          ({ title, file }) => `
             <button class="listen-btn${file ? "" : " pending"}" type="button" data-audio="${file}" ${file ? "" : "disabled"}>
               <span class="listen-name">${title}</span>
-              <span class="listen-meta">${meta}</span>
             </button>
           `
         )
